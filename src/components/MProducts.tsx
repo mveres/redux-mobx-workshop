@@ -1,19 +1,18 @@
 import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { getProducts, addToCart } from '../actions';
 import { InventoryItem, Product } from '../types';
+import { observer } from "mobx-react"
+import { ProductsStore } from '../mobx/products';
 
-export const Products = () => {
-  const dispatch = useDispatch();
-  const products: InventoryItem[] = useSelector((state: any) => state.productsStore.products);
-  const isLoading: boolean = useSelector((state: any) => state.productsStore.isLoadingProducts);
+export const Products = observer(({ productsStore }: { productsStore: ProductsStore }) => {
+  const products: InventoryItem[] = productsStore.products;
+  const isLoading: boolean = productsStore.isLoadingProducts;
   const noProducts = !products.length;
 
   useEffect(() => {
-    dispatch(getProducts());
-  }, [noProducts, dispatch]);
+    productsStore.getProducts();
+  }, [noProducts, productsStore]);
 
-  const add = (p: Product) => dispatch(addToCart(p));
+  const add = (p: Product) => productsStore.addToCart(p);
 
   return (
     <div>
@@ -30,4 +29,4 @@ export const Products = () => {
         ))}
     </div>
   );
-};
+});
