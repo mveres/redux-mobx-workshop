@@ -1,46 +1,318 @@
-# Getting Started with Create React App
+# Redux
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Redux is a predictable state container for JavaScript apps.
 
-## Available Scripts
+# Typescript
 
-In the project directory, you can run:
+TypeScript is an open-source language which builds on JavaScript, by adding static type definitions.
 
-### `yarn start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+# Setup
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+```
+npx create-react-app my-app
+```
 
-### `yarn test`
+- typescript and redux can be added by template at creation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```
+npx create-react-app my-app --template redux
+npx create-react-app my-app --template typescript
+npx create-react-app my-app --template redux-typescript
+```
 
-### `yarn build`
+- can be added afterwards
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+yarn add react-redux
+yarn add @types/react-redux
+yarn add redux-thunk
+yarn add @types/redux-thunk
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
 
-### `yarn eject`
+# Redux Thunk 
+With a plain basic Redux store, you can only do simple synchronous updates by dispatching an action. Middleware extends the store's abilities, and lets you write async logic that interacts with the store.
+The components
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Let's go
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+`index.tsx`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```
+import thunk from 'redux-thunk'
+import { Provider } from 'react-redux';
+import { createStore, applyMiddleware } from 'redux';
+import reducer from './reducers';
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+const store = createStore(
+  reducer,
+  applyMiddleware(thunk)
+)
 
-## Learn More
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+ReactDOM.render(
+  <Provider store={store}>
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  </Provider>,
+  document.getElementById('root')
+);
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+`reducers/index.ts`
+```
+import { combineReducers } from 'redux'
+
+export default combineReducers({
+  // reducers go here,
+})
+```
+
+`actions/index.ts`
+
+```
+const products = [
+  { "id": 1, "title": "iPad 4 Mini", "price": 500.01, "inventory": 2 },
+  { "id": 2, "title": "Converse All Star", "price": 69.99, "inventory": 10 },
+  { "id": 3, "title": "Michael Jackson CD", "price": 19.99, "inventory": 5 }
+];
+
+export const getProducts = () => ({
+  type: 'GET_PRODUCTS',
+  products
+})
+```
+
+`src/reducers/products.ts`
+```
+export const productsReducer = (state = {}, action: Record<string, any>) => {
+  switch (action.type) {
+    case 'GET_PRODUCTS':
+      return { ...state, products: action.products };
+
+  default: return state;
+}};
+```
+
+`src/reducers/index`
+
+import { combineReducers } from 'redux';
+import { productsStore } from './products';
+
+export default combineReducers({
+  productsStore,
+})
+
+
+`src/components/Products.tsx`
+
+
+```
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { getProducts } from '../actions';
+
+
+export const Products = () => {
+
+  const dispatch = useDispatch();
+  const products = useSelector((state: any) => state.productsStore.products);
+
+  useEffect(() => {
+    setTimeout(() => dispatch(getProducts), 3000);
+  });
+
+  return (
+    <div>
+      {!products.length ? 'Loading...' : JSON.stringify(products, null, 2)}
+    </div>
+  )
+};
+
+```
+
+------------------------------------------------
+# Part 2: Redux Thunk and Mobx
+------------------------------------------------
+
+
+## Type fixes
+
+ - use Interseciton Types for actions
+
+
+## Thunk
+
+### Option 1
+  
+	use `npx create-react-app --template redux-typescript thunk`
+	- it comes with redux thunk already installed via the redux js toolkit package
+	- it has an example to elaborate on
+
+### Option 2
+ 
+```
+npm install redux-thunk
+
+import thunk from 'redux-thunk';
+
+import rootReducer from './reducers/index';
+
+const store = createStore(rootReducer, applyMiddleware(thunk));
+```
+
+
+Enhance action functions:
+
+```
+export const getProducts = () => async (
+  dispatch: (action: Action) => void,
+  getState: () => Record<string, any>
+) => {
+  dispatch({
+    type: "GET_PRODUCTS",
+    products,
+  });
+};
+
+export const addToCart = (product: Partial<Product>) => async (
+  dispatch: (action: Action) => void,
+  getState: () => Record<string, any>
+) => {
+  dispatch({
+    type: "ADD_TO_CART",
+    product,
+  });
+};
+```
+
+Retrieve products from server:
+
+```
+const loadProducts = async (): Promise<InventoryItem[]> => {
+  // simulate server delay
+  await new Promise((r) => setTimeout(r, 2000));
+
+  return [
+    { id: "1", title: "iPad 4 Mini", price: 500.01, qty: 2 },
+    { id: "2", title: "Converse All Star", price: 69.99, qty: 10 },
+    { id: "3", title: "Michael Jackson CD", price: 19.99, qty: 5 },
+  ];
+};
+
+export const getProducts = () => async (dispatch: (action: Action) => void) => {
+  dispatch({ type: "GETTING_PRODUCTS" });
+
+  const products = await loadProducts();
+
+  dispatch({ type: "GET_PRODUCTS", products });
+};
+
+```
+
+### Using `getState()` 
+
+```
+export const addToCart = (product: Partial<Product>) => async (
+   dispatch: (action: Action) => void,
+   getState: () => Record<string, any>
+ ) => {
+  const { cart, products } = getState().productsStore;
+
+  const newProducts = products.map((p: InventoryItem) =>
+    p.id === product.id ? { ...p, qty: p.qty - 1 } : p
+  );
+
+  const prevCartProduct = cart.find(
+    (p: InventoryItem) => p.id === product.id
+  ) || { ...product, qty: 0 };
+
+  const newCart = [
+    ...cart.filter((p: InventoryItem) => p.id !== product.id),
+    { ...prevCartProduct, qty: prevCartProduct.qty + 1 },
+  ];
+
+  dispatch({ type: "ADD_TO_CART", products: newProducts, cart: newCart });
+};
+```
+
+
+## MOBX
+
+"_Simple, scalable state management._"
+
+https://mobx.js.org/assets/getting-started-assets/overview.png
+
+
+```
+yarn add mobx
+yarn add mobx-react
+```
+
+### The Store
+
+```
+import { Product, InventoryItem } from "../types";
+import { makeAutoObservable } from "mobx";
+
+// Model the application state.
+export class ProductsStore {
+  products: InventoryItem[] = [];
+  cart: InventoryItem[] = [];
+  isLoadingProducts = false;
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  async getProducts() {
+    this.isLoadingProducts = true;
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    this.isLoadingProducts = false;
+
+    this.products = [
+      { id: "1", title: "iPad 4 Mini", price: 500.01, qty: 2 },
+      { id: "2", title: "Converse All Star", price: 69.99, qty: 10 },
+      { id: "3", title: "Michael Jackson CD", price: 19.99, qty: 5 },
+    ];
+  }
+
+  addToCart(product: Product) {
+    const newProducts = this.products.map((p: InventoryItem) =>
+      p.id === product.id ? { ...p, qty: p.qty - 1 } : p
+    );
+
+    const prevCartProduct = this.cart.find(
+      (p: InventoryItem) => p.id === product.id
+    ) || { ...product, qty: 0 };
+
+    const newCart = [
+      ...this.cart.filter((p: InventoryItem) => p.id !== product.id),
+      { ...prevCartProduct, qty: prevCartProduct.qty + 1 },
+    ];
+
+    this.cart = newCart;
+    this.products = newProducts;
+  }
+}
+```
+
+
+### Observer components
+
+```
+import { observer } from "mobx-react";
+import { ProductsStore } from '../mobx/products';
+
+export const Products = observer(({ productsStore }: { productsStore: ProductsStore }) => { ...
+
+export const Cart = observer(({ productsStore }: { productsStore: ProductsStore }) => {...
+```
+
+
+
